@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:22.04
 
 RUN \
       apt-get update && apt-get install -y \
@@ -22,14 +22,15 @@ RUN \
       unzip \
       sudo \
       python-setuptools \
-      python-dev \
+      python3-dev \
+      python3-pip \
       build-essential \
       bison \
+      heimdal-dev libnacl-dev libcurl4-openssl-dev\
       flex
 
 # pyang
-RUN easy_install pip
-RUN pip install --upgrade pyang
+RUN pip3 install --upgrade pyang
 
 # Adding netconf user
 RUN adduser --system netconf
@@ -53,10 +54,10 @@ RUN echo "root:root" | chpasswd
 # upgrade cmake to 3.5
 RUN \
       cd /opt/dev && \
-      wget https://cmake.org/files/v3.5/cmake-3.5.2.tar.gz && \
-      tar -xvf cmake-3.5.2.tar.gz && rm cmake-3.5.2.tar.gz && cd cmake-3.5.2 && \
+      wget https://cmake.org/files/v3.31/cmake-3.31.0.tar.gz && \
+      tar -xvf cmake-3.31.0.tar.gz && rm cmake-3.31.0.tar.gz && cd cmake-3.31.0 && \
       ./bootstrap && \
-      make -j2 && \
+      make -j8 && \
       make install
 
 # swig
@@ -73,38 +74,36 @@ RUN \
 #cmocka
 RUN \
       cd /opt/dev && \
-      git clone git://git.cryptomilk.org/projects/cmocka.git && cd cmocka && \
+      git clone https://git.cryptomilk.org/projects/cmocka.git && cd cmocka && \
       git checkout tags/cmocka-1.0.1 && \
       mkdir build && cd build && \
       cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && \
-      make -j2 && \
+      make -j8 && \
       make install
 
 # libssh
 RUN \
       cd /opt/dev && \
-      git clone http://git.libssh.org/projects/libssh.git && cd libssh && \
+      git clone http://git.libssh.org/projects/libssh.git -b libssh-0.11.3 && cd libssh && \
       mkdir build && cd build && \
       cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && \
-      make -j2 && \
+      make -j8 && \
       make install
 
 # protobuf
 RUN \
       cd /opt/dev && \
-      git clone https://github.com/google/protobuf.git && cd protobuf && \
-      ./autogen.sh && \
-      ./configure --prefix=/usr && \
-      make -j2 && \
-      make install
+      git clone https://github.com/google/protobuf.git -b v32.0 && cd protobuf && \
+      cmake . -DCMAKE_CXX_STANDARD=17 && \
+      cmake --build .  --config Release --target install
 
 # protobuf-c
 RUN \
       cd /opt/dev && \
-      git clone https://github.com/protobuf-c/protobuf-c.git && cd protobuf-c && \
+      git clone https://github.com/protobuf-c/protobuf-c.git -b v1.5.2 && cd protobuf-c && \
       ./autogen.sh && \
       ./configure --prefix=/usr && \
-      make -j2 && \
+      make -j8 && \
       make install
 
 # install lua
@@ -114,64 +113,57 @@ RUN \
       luarocks
 
 # install node v4.x
-RUN \
-     curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash - && \
-     sudo apt-get install -y nodejs && \
-     npm install -g node-gyp
+#RUN \
+#     curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash - && \
+#     sudo apt-get install -y nodejs && \
+#     npm install -g node-gyp
 
 # fix nodejs name problem in ubunt
-RUN sudo ln -sf /usr/bin/nodejs /usr/bin/node
+#RUN sudo ln -sf /usr/bin/nodejs /usr/bin/node
 
 # libredblack
 RUN \
       cd /opt/dev && \
       git clone https://github.com/sysrepo/libredblack.git && cd libredblack && \
       ./configure && \
-      make -j2 && \
+      make -j8 && \
       make install
 
 # libyang
 RUN \
       cd /opt/dev && \
-      git clone https://github.com/CESNET/libyang.git && cd libyang && \
+      git clone https://github.com/CESNET/libyang.git -b v3.13.6 && cd libyang && \
       git checkout master && \
       mkdir build && cd build && \
       cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF .. && \
-      make -j2 && \
+      make -j8 && \
       make install
 
 # libnetconf2
 RUN \
       cd /opt/dev && \
-      git clone https://github.com/CESNET/libnetconf2.git && cd libnetconf2 && \
-      git checkout master && \
+      git clone https://github.com/CESNET/libnetconf2.git -b v3.7.10 && cd libnetconf2 && \
       mkdir build && cd build && \
       cmake  -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF .. && \
-      make -j2 && \
+      make -j8 && \
       make install
 
 # sysrepo
 RUN \
       cd /opt/dev && \
-      git clone https://github.com/sysrepo/sysrepo.git && cd sysrepo && \
+      git clone https://github.com/sysrepo/sysrepo.git -b v3.7.11 && cd sysrepo && \
       mkdir build && cd build && \
       cmake -DENABLE_TESTS=OFF -DCMAKE_BUILD_TYPE="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DREPOSITORY_LOC:PATH=/etc/sysrepo .. && \
-      make -j2 && \
+      make -j8 && \
       make install
 
 # netopeer 2
 RUN \
-      cd /opt/dev && git clone https://github.com/CESNET/Netopeer2.git && cd Netopeer2 && \
-      git checkout master && \
-      cd /opt/dev/Netopeer2/server && \
+      cd /opt/dev && git clone https://github.com/CESNET/Netopeer2.git -b v2.4.5 && cd Netopeer2 && \
+      cd /opt/dev/Netopeer2 && \
       mkdir build && cd build && \
       cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && \
-      make -j2 && \
-      make install && \
-      cd /opt/dev/Netopeer2/cli && \
-      mkdir build && cd build && \
-      cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && \
-      make -j2 && \
+      make -j8 && \
       make install
 
 # install libyang javascript bindings
@@ -179,11 +171,7 @@ RUN \
       cd /opt/dev/libyang && \
       mkdir build_javascript_bindings && cd build_javascript_bindings && \
       cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF -DJAVASCRIPT_BINDING=ON .. && \
-      make -j2 && \
-      cd javascript && \
-      node-gyp configure && \
-      node-gyp build
+      make -j8 
 
 EXPOSE 6001
-CMD ["/usr/bin/sysrepod"]
-CMD ["/usr/bin/netopeer2-server", "-d"]
+#CMD ["/usr/bin/sysrepod&", "&&", "/usr/bin/netopeer2-server", "-d"]

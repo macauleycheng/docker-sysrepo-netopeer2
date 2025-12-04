@@ -1,0 +1,49 @@
+<keystore xmlns="urn:ietf:params:xml:ns:yang:ietf-keystore">
+  <asymmetric-keys>
+    <asymmetric-key>
+      <name>genkey</name>
+      <public-key-format xmlns:ct="urn:ietf:params:xml:ns:yang:ietf-crypto-types">ct:ssh-public-key-format</public-key-format>
+      <private-key-format xmlns:ct="urn:ietf:params:xml:ns:yang:ietf-crypto-types">ct:rsa-private-key-format</private-key-format>
+      <cleartext-private-key>MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDFytYwO0LAGJm6CixTWQ72iZXwG2p86Jcrwt0RKEuAQ+pSabdcuVBK4YfXwb4TLnmjb4ClsXZhqNWelUMB5mJit5eynzFVuCjnG7ga8IKmiihdFEw9Fz1n+tIBFLgrvq7AROtj2irqDV+Tawxv18Pz3D70fnc2GUVHlLslsLdu0ucCwcFHsOsuBLFZVIoPNNOS+SNV7F3hOwhwb19CZ9q/trpW+tMlfwzogaEwCfNzdX14uQ/HGcjMUNl7HV/aYszEh2nexMLe/sscv2n7QEaACYG/gogUjdBl8/bqK5S2hNYV2QP5PWQOquTU1pIeBO5n4ZhvKKKgkxXWCjY7DHzbAgMBAAECggEAD7E1iBMTiykIfT2UYbJ1oPKufiO2sZ1EbRjjMBrJzq3Ut+AiR41+RMqa2+/HlD8CMIjGpJ6tPTdHZ3MBI3PzR1C4jNfbcqkPObK1yxFc1Diu1h+nossmuIqqQaKyr+nLdH6jTENBV1tjQ09hZ7gvGDhXmE82Rwj/OZwfsvBPxU97eKZbyhxeb92EMPZgCK7sns44oPG4+EdP1eu6kJxVVLWUCOMSqMe/JbT63Xr2cjvA2137u40bV76FfcaRkDWc4f2LF8mJ9tEPG8Ny8Gdf22POV4xD6iG075Kl91ZOU3C8iQ/yORH/IwNVJraW/No2H9mD57cPaGJURy+FCWCmFQKBgQDt6fkKacvEWevxGDF3t1j55Qv71At67VfRXY/PuXNv3eswgnZchB9J6ACyKn1y4CCkbNuIPgrRQ8FILt3it/TWOw2mxYeymzECdQoxdxQy4taU/7YEhNC+WVnYYjpbAr6ltYEQjxk7dHH1uUPjIqzH63NsfnfCsLYvcDTII4X5TwKBgQDU1A9Fk9AArx+EoZxWwMgd1arQDpOEZVY/ji4ww7jrVdj+BxO2OaoDLsdcjEpPCPH6fvYRhCSP2c5bGXu2NZkdCLp6YtbQSlnczRl0S6JmvDWSdV/HdloHq9/u68dLGEkO4alZAuIyjCrLm015HvslRtrx56IfZ35V0ScG5jtItQKBgAFrXu//95ZBTxYOJeVn86DyC+NBvZvLJLX8D+qWWaj2MvwEGz6sDx+6wZ5OgJcZ3Tf96kVi0V+0Psf2d55tqIlKqucu0INxR5aTKi9nXXh8P/l9mRFn1XL9R3ryAxUd7BNDBPUbVXQ0WqWzqEMHpu4+al7gVkiUE1IvIjF7fMYjAoGAKzrn3zonBfyMamRpXTXLcEP2bkyHqlzrJ/25ZC5dYXAOo4rMdjdAUWUvGZ1leqhWfotLcENnKdEUGW0Ts+8vKrabKkDpYWW42yDOCtFSK4wPVbCBxAJGR0iiM+WwlZBZRqyPuYTcbWgLSVBCbFfeq7O4xWpHhBmBj+zsAHrDkAECgYEAnTu480KKR4bgFUtta6HvrPi/kzKE2wK5TM90NkeO8DRWjH/CP3KDPoU8H2gwmXh5LLmKYFpSyj38RYr7WBhsDbG/JZnkjhvx1lt033kIUuo00XkX8vvfaDrhTRko3RJrOOgWzwMx1Xc+mZr9V+WfdKoTEPXjsUxmekq8u2GVsoI=</cleartext-private-key>
+    </asymmetric-key>
+  </asymmetric-keys>
+</keystore>
+<netconf-server xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-server">
+  <listen>
+    <endpoints>
+      <endpoint>
+        <name>default-ssh</name>
+        <ssh>
+          <tcp-server-parameters>
+            <local-address>0.0.0.0</local-address>
+          </tcp-server-parameters>
+          <ssh-server-parameters>
+            <server-identity>
+              <host-key>
+                <name>default-key</name>
+                <public-key>
+                  <central-keystore-reference>genkey</central-keystore-reference>
+                </public-key>
+              </host-key>
+              <banner xmlns="urn:cesnet:libnetconf2-netconf-server">netopeer2-netconf-server-2.4.5</banner>
+            </server-identity>
+            <client-authentication>
+              <users>
+                <user>
+                  <name>root</name>
+                  <keyboard-interactive xmlns="urn:cesnet:libnetconf2-netconf-server">
+                    <use-system-auth/>
+                  </keyboard-interactive>
+                </user>
+                <user>
+                    <name>netconf</name>
+                    <password>$0$netconf</password>
+                </user>
+              </users>
+            </client-authentication>
+          </ssh-server-parameters>
+        </ssh>
+      </endpoint>
+    </endpoints>
+  </listen>
+</netconf-server>

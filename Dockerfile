@@ -20,7 +20,8 @@ RUN \
       libavl-dev \
       libpcre3-dev \
       unzip \
-      sudo \
+      luajit \
+      luarocks \
       python-setuptools \
       python3-dev \
       python3-pip \
@@ -32,21 +33,7 @@ RUN \
 # pyang
 RUN pip3 install --upgrade pyang
 
-# Adding netconf user
-RUN adduser --system netconf
-RUN mkdir -p /home/netconf/.ssh
-RUN echo "netconf:netconf" | chpasswd && adduser netconf sudo
-
-# Clearing and setting authorized ssh keys
-RUN echo '' > /home/netconf/.ssh/authorized_keys
-RUN ssh-keygen -A
-RUN ssh-keygen -t dsa -P '' -f /home/netconf/.ssh/id_dsa
-RUN cat /home/netconf/.ssh/id_dsa.pub >> /home/netconf/.ssh/authorized_keys
-
-# Updating shell to bash
-RUN sed -i s#/home/netconf:/bin/false#/home/netconf:/bin/bash# /etc/passwd
-
-RUN mkdir /opt/dev && sudo chown -R netconf /opt/dev
+RUN mkdir /opt/dev 
 
 # set root password to root
 RUN echo "root:root" | chpasswd
@@ -106,20 +93,6 @@ RUN \
       make -j8 && \
       make install
 
-# install lua
-RUN \
-      apt-get update && apt-get install -y \
-      luajit \
-      luarocks
-
-# install node v4.x
-#RUN \
-#     curl -sL https://deb.nodesource.com/setup_4.x | sudo -E bash - && \
-#     sudo apt-get install -y nodejs && \
-#     npm install -g node-gyp
-
-# fix nodejs name problem in ubunt
-#RUN sudo ln -sf /usr/bin/nodejs /usr/bin/node
 
 # libredblack
 RUN \
@@ -133,7 +106,6 @@ RUN \
 RUN \
       cd /opt/dev && \
       git clone https://github.com/CESNET/libyang.git -b v3.13.6 && cd libyang && \
-      git checkout master && \
       mkdir build && cd build && \
       cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF .. && \
       make -j8 && \
@@ -173,5 +145,9 @@ RUN \
       cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF -DJAVASCRIPT_BINDING=ON .. && \
       make -j8 
 
-EXPOSE 6001
-#CMD ["/usr/bin/sysrepod&", "&&", "/usr/bin/netopeer2-server", "-d"]
+COPY startup_all.xml /tmp
+RUN sysrepocfg -d startup -f xml -I /tmp/startup_all.xml
+RUN sysrepocfg -d running -f xml -I /tmp/startup_all.xml
+
+EXPOSE 830
+CMD ["/usr/sbin/netopeer2-server", "-d", "-v2"]

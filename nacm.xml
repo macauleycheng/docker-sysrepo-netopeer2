@@ -1,0 +1,18 @@
+  <nacm xmlns="urn:ietf:params:xml:ns:yang:ietf-netconf-acm">
+        <groups>
+          <group>
+                <name>netconf</name>
+                <user-name>netconf</user-name>
+          </group>
+        </groups>
+        <rule-list>
+          <name>netconf</name>
+          <group>netconf</group>
+          <rule>
+                <name>permit-all</name>
+                <module-name>*</module-name>
+                <access-operations>*</access-operations>
+                <action>permit</action>
+          </rule>
+        </rule-list>
+  </nacm>

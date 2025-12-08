@@ -146,8 +146,10 @@ RUN \
       make -j8 
 
 COPY startup_all.xml /tmp
+COPY nacm.xml /tmp
 RUN sysrepocfg -d startup -f xml -I /tmp/startup_all.xml
 RUN sysrepocfg -d running -f xml -I /tmp/startup_all.xml
+RUN sysrepocfg --module ietf-netconf-acm --edit=nacm.xml  --datastore=running
 
 EXPOSE 830
 CMD ["/usr/sbin/netopeer2-server", "-d", "-v2"]

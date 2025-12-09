@@ -1,0 +1,206 @@
+FROM ubuntu:22.04 AS builder
+
+RUN \
+      apt-get update && apt-get install -y \
+      git \
+      curl \
+      wget \
+      libssl-dev \
+      libtool \
+      build-essential \
+      autoconf \
+      automake \
+      pkg-config \
+      libgtk-3-dev \
+      make \
+      vim \
+      valgrind \
+      doxygen \
+      libev-dev \
+      libavl-dev \
+      libpcre3-dev \
+      unzip \
+      luajit \
+      luarocks \
+      python-setuptools \
+      python3-dev \
+      python3-pip \
+      build-essential \
+      bison \
+      heimdal-dev libnacl-dev libcurl4-openssl-dev\
+      flex
+
+# pyang
+RUN pip3 install --upgrade pyang
+
+RUN mkdir /opt/dev 
+
+# set root password to root
+RUN echo "root:root" | chpasswd
+
+# upgrade cmake to 3.5
+RUN \
+      cd /opt/dev && \
+      wget https://cmake.org/files/v3.31/cmake-3.31.0.tar.gz && \
+      tar -xvf cmake-3.31.0.tar.gz && rm cmake-3.31.0.tar.gz && cd cmake-3.31.0 && \
+      ./bootstrap && \
+      make -j8 && \
+      make install
+
+# swig
+RUN \
+      cd /opt/dev && \
+      wget http://downloads.sourceforge.net/swig/swig-3.0.8.tar.gz && \
+      tar -xvf swig-3.0.8.tar.gz && rm swig-3.0.8.tar.gz && cd swig-3.0.8 && \
+      ./configure --prefix=/usr --without-clisp --without-maximum-compile-warnings && \
+      make && \
+      make install && \
+      install -v -m755 -d /usr/share/doc/swig-3.0.8 && \
+      cp -v -R Doc/* /usr/share/doc/swig-3.0.8
+
+#cmocka
+RUN \
+      cd /opt/dev && \
+      git clone https://git.cryptomilk.org/projects/cmocka.git && cd cmocka && \
+      git checkout tags/cmocka-1.0.1 && \
+      mkdir build && cd build && \
+      cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && \
+      make -j8 && \
+      make install
+
+# libssh
+RUN \
+      cd /opt/dev && \
+      git clone http://git.libssh.org/projects/libssh.git -b libssh-0.11.3 && cd libssh && \
+      mkdir build && cd build && \
+      cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && \
+      make -j8 && \
+      make install
+
+# protobuf
+RUN \
+      cd /opt/dev && \
+      git clone https://github.com/google/protobuf.git -b v32.0 && cd protobuf && \
+      cmake . -DCMAKE_CXX_STANDARD=17 && \
+      cmake --build .  --config Release --target install
+
+# protobuf-c
+RUN \
+      cd /opt/dev && \
+      git clone https://github.com/protobuf-c/protobuf-c.git -b v1.5.2 && cd protobuf-c && \
+      ./autogen.sh && \
+      ./configure --prefix=/usr && \
+      make -j8 && \
+      make install
+
+
+# libredblack
+RUN \
+      cd /opt/dev && \
+      git clone https://github.com/sysrepo/libredblack.git && cd libredblack && \
+      ./configure && \
+      make -j8 && \
+      make install
+
+# libyang
+RUN \
+      cd /opt/dev && \
+      git clone https://github.com/CESNET/libyang.git -b v3.13.6 && cd libyang && \
+      mkdir build && cd build && \
+      cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF .. && \
+      make -j8 && \
+      make install
+
+# libnetconf2
+RUN \
+      cd /opt/dev && \
+      git clone https://github.com/CESNET/libnetconf2.git -b v3.7.10 && cd libnetconf2 && \
+      mkdir build && cd build && \
+      cmake  -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF .. && \
+      make -j8 && \
+      make install
+
+# sysrepo
+RUN \
+      cd /opt/dev && \
+      git clone https://github.com/sysrepo/sysrepo.git -b v3.7.11 && cd sysrepo && \
+      mkdir build && cd build && \
+      cmake -DENABLE_TESTS=OFF -DCMAKE_BUILD_TYPE="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DREPOSITORY_LOC:PATH=/etc/sysrepo .. && \
+      make -j8 && \
+      make install
+
+# netopeer 2
+RUN \
+      cd /opt/dev && git clone https://github.com/CESNET/Netopeer2.git -b v2.4.5 && cd Netopeer2 && \
+      cd /opt/dev/Netopeer2 && \
+      mkdir build && cd build && \
+      cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && \
+      make -j8 && \
+      make install
+
+# install libyang javascript bindings
+RUN \
+      cd /opt/dev/libyang && \
+      mkdir build_javascript_bindings && cd build_javascript_bindings && \
+      cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF -DJAVASCRIPT_BINDING=ON .. && \
+      make -j8 
+
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y curl libssl-dev heimdal-dev
+
+
+#libyang
+COPY --from=builder /usr/share/yang/modules/libyang/* /usr/share/yang/modules/libyang/
+COPY --from=builder /usr/bin/yang* /usr/bin/
+COPY --from=builder /lib/x86_64-linux-gnu/libyan* /lib/x86_64-linux-gnu/
+COPY --from=builder /usr/include/libyang/* /usr/include/libyang/
+COPY --from=builder /usr/bin/yanglint /usr/bin/
+COPY --from=builder /usr/bin/yangre /usr/bin/
+
+#libnetconf
+COPY --from=builder /usr/share/yang/modules/libnetconf2/* /usr/share/yang/modules/libnetconf2/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libnetconf2* /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/include/nc* /usr/include/
+COPY --from=builder /usr/include/libnetconf2/* /usr/include/libnetconf2/
+
+
+#sysrepo
+COPY --from=builder /usr/share/yang/modules/sysrepo/* /usr/share/yang/modules/sysrepo/
+COPY --from=builder /usr/bin/sysrepo* /usr/bin/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libsysrepo* /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/include/sysrepo* /usr/include/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/pkgconfig/sysrepo.pc /usr/lib/x86_64-linux-gnu/pkgconfig/
+
+#netopeer2
+COPY --from=builder /usr/share/yang/modules/netopeer2/* /usr/share/yang/modules/netopeer2/
+COPY --from=builder /usr/sbin/netopeer2-server /usr/sbin/
+COPY --from=builder /usr/bin/netopeer2-cli /usr/bin/
+COPY --from=builder /usr/share/netopeer2/scripts/* /usr/share/netopeer2/scripts/
+COPY --from=builder /usr/etc/pam.d/netopeer2.conf /usr/etc/pam.d/
+COPY --from=builder /lib/x86_64-linux-gnu/libnetconf2* /lib/x86_64-linux-gnu/
+ENV NP2_MODULE_DIR="/usr/share/yang/modules/netopeer2"
+ENV NP2_MODULE_OWNER="root"
+ENV NP2_MODULE_GROUP="root"
+ENV NP2_MODULE_PERMS=600
+ENV LN2_MODULE_DIR="/usr/share/yang/modules/libnetconf2"
+RUN /usr/share/netopeer2/scripts/setup.sh
+RUN /usr/share/netopeer2/scripts/merge_hostkey.sh
+RUN /usr/share/netopeer2/scripts/merge_config.sh
+
+#others
+COPY --from=builder /usr/local/share/yang/modules/iana/* /usr/local/share/yang/modules/iana/
+COPY --from=builder /usr/local/share/yang/modules/ietf/* /usr/local/share/yang/modules/ietf/
+COPY --from=builder /opt/dev/libssh/build/lib/* /lib/x86_64-linux-gnu/
+COPY --from=builder /usr/bin/protoc* /usr/bin/
+
+
+COPY startup_all.xml /tmp
+COPY nacm.xml /tmp
+RUN sysrepocfg -d startup -f xml -I /tmp/startup_all.xml
+RUN sysrepocfg -d running -f xml -I /tmp/startup_all.xml
+RUN sysrepocfg --module ietf-netconf-acm --edit=/tmp/nacm.xml  --datastore=running
+
+#EXPOSE 830
+CMD ["/usr/sbin/netopeer2-server", "-d", "-v2"]
+

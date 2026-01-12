@@ -48,25 +48,25 @@ RUN \
       make install
 
 # swig
-RUN \
-      cd /opt/dev && \
-      wget http://downloads.sourceforge.net/swig/swig-3.0.8.tar.gz && \
-      tar -xvf swig-3.0.8.tar.gz && rm swig-3.0.8.tar.gz && cd swig-3.0.8 && \
-      ./configure --prefix=/usr --without-clisp --without-maximum-compile-warnings && \
-      make && \
-      make install && \
-      install -v -m755 -d /usr/share/doc/swig-3.0.8 && \
-      cp -v -R Doc/* /usr/share/doc/swig-3.0.8
+#RUN \
+#      cd /opt/dev && \
+#      wget http://downloads.sourceforge.net/swig/swig-3.0.8.tar.gz && \
+#      tar -xvf swig-3.0.8.tar.gz && rm swig-3.0.8.tar.gz && cd swig-3.0.8 && \
+#      ./configure --prefix=/usr --without-clisp --without-maximum-compile-warnings && \
+#      make && \
+#      make install && \
+#      install -v -m755 -d /usr/share/doc/swig-3.0.8 && \
+#      cp -v -R Doc/* /usr/share/doc/swig-3.0.8
 
 #cmocka
-RUN \
-      cd /opt/dev && \
-      git clone https://git.cryptomilk.org/projects/cmocka.git && cd cmocka && \
-      git checkout tags/cmocka-1.0.1 && \
-      mkdir build && cd build && \
-      cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && \
-      make -j8 && \
-      make install
+#RUN \
+#      cd /opt/dev && \
+#      git clone https://git.cryptomilk.org/projects/cmocka.git && cd cmocka && \
+#      git checkout tags/cmocka-1.1.8 && \
+#      mkdir build && cd build && \
+#      cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && \
+#      make -j8 && \
+#      make install
 
 # libssh
 RUN \
@@ -78,29 +78,29 @@ RUN \
       make install
 
 # protobuf
-RUN \
-      cd /opt/dev && \
-      git clone https://github.com/google/protobuf.git -b v32.0 && cd protobuf && \
-      cmake . -DCMAKE_CXX_STANDARD=17 && \
-      cmake --build .  --config Release --target install
+#RUN \
+#      cd /opt/dev && \
+#      git clone https://github.com/google/protobuf.git -b v32.0 && cd protobuf && \
+#      cmake . -DCMAKE_CXX_STANDARD=17 && \
+#      cmake --build .  --config Release --target install
 
 # protobuf-c
-RUN \
-      cd /opt/dev && \
-      git clone https://github.com/protobuf-c/protobuf-c.git -b v1.5.2 && cd protobuf-c && \
-      ./autogen.sh && \
-      ./configure --prefix=/usr && \
-      make -j8 && \
-      make install
+#RUN \
+#      cd /opt/dev && \
+#      git clone https://github.com/protobuf-c/protobuf-c.git -b v1.5.2 && cd protobuf-c && \
+#      ./autogen.sh && \
+#      ./configure --prefix=/usr && \
+#      make -j8 && \
+#      make install
 
 
 # libredblack
-RUN \
-      cd /opt/dev && \
-      git clone https://github.com/sysrepo/libredblack.git && cd libredblack && \
-      ./configure && \
-      make -j8 && \
-      make install
+#RUN \
+#      cd /opt/dev && \
+#      git clone https://github.com/sysrepo/libredblack.git && cd libredblack && \
+#      ./configure && \
+#      make -j8 && \
+#      make install
 
 # libyang
 RUN \
@@ -139,11 +139,121 @@ RUN \
       make install
 
 # install libyang javascript bindings
+#RUN \
+#      cd /opt/dev/libyang && \
+#      mkdir build_javascript_bindings && cd build_javascript_bindings && \
+#      cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF -DJAVASCRIPT_BINDING=ON .. && \
+#      make -j8 
+
+#------------------------------------------------------------------
+FROM ubuntu:22.04 AS restconf
+
 RUN \
-      cd /opt/dev/libyang && \
-      mkdir build_javascript_bindings && cd build_javascript_bindings && \
-      cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF -DJAVASCRIPT_BINDING=ON .. && \
-      make -j8 
+    apt-get update && apt-get install -y \
+    git cmake valgrind libpcre2-dev build-essential pkg-config \
+    vim libboost-dev libboost-system-dev libboost-thread-dev \
+    libnghttp2-dev libssl-dev libspdlog-dev libsystemd-dev libpam0g-dev libdocopt-dev\
+    bison byacc flex libcurlpp-dev
+
+RUN mkdir /opt/dev
+
+#libyang
+RUN cd /opt/dev && \
+      git clone https://github.com/CESNET/libyang.git -b v3.13.6 && cd libyang && \
+      mkdir build && cd build && \
+      cmake -DCMAKE_BUILD_TYPE:String="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DENABLE_BUILD_TESTS=OFF .. && \
+      make -j8 && \
+      make install
+
+#date
+RUN \
+    cd /opt/dev && git clone https://github.com/HowardHinnant/date.git -b v3.0.4 && cd date && \
+    mkdir build && cd build && \
+    cmake -DBUILD_TZ_LIB=ON .. && make && make install
+
+#doctest
+RUN \
+    cd /opt/dev && git clone https://github.com/doctest/doctest.git -b v2.4.11 && cd doctest && \
+    mkdir build && cd build && \
+    cmake .. && make && make install
+
+#libyang-cpp
+RUN \
+     cd /opt/dev && git clone https://github.com/macauleycheng/libyang-cpp.git -b fixDate && cd libyang-cpp && \
+     mkdir build && cd build && \
+     cmake -DBUILD_TESTING=OFF .. && make && make install
+
+#trompeloeil
+#RUN \
+#    cd /opt/dev/ && git clone https://github.com/rollbear/trompeloeil.git && cd trompeloeil && \
+#    mkdir build && cd build && \
+#    cmake thread_terror custom_recursive_mutex .. && make install
+
+# sysrepo
+RUN \
+      cd /opt/dev && \
+      git clone https://github.com/sysrepo/sysrepo.git -b v3.7.11 && cd sysrepo && \
+      mkdir build && cd build && \
+      cmake -DENABLE_TESTS=OFF -DCMAKE_BUILD_TYPE="Release" -DCMAKE_INSTALL_PREFIX:PATH=/usr -DREPOSITORY_LOC:PATH=/etc/sysrepo .. && \
+      make -j8 && \
+      make install
+
+
+#sysrepo-cpp
+RUN \
+    cd /opt/dev && git clone https://github.com/macauleycheng/sysrepo-cpp.git -b fixBuildError && cd sysrepo-cpp && \
+    mkdir build && cd build && \
+    cmake  -DBUILD_TESTING=OFF .. && make && make install
+
+#nghttp2-asio
+RUN \
+    cd /opt/dev && git clone https://github.com/nghttp2/nghttp2-asio.git && cd nghttp2-asio && \
+    mkdir build && cd build && \
+    cmake .. && make && make install
+
+#libpam
+#RUN \
+#    cd /opt/dev && git clone  https://github.com/linux-pam/linux-pam.git -b v1.5.3 && cd linux-pam && \
+#    ./autogen.sh && ./configure --disable-doc  && make && make install
+
+#patch libpam.pc
+RUN \
+echo " \
+exec_prefix=${prefix} \n\
+libdir=/usr/lib/x86_64- linux-gnu \n\
+includedir=/usr/include/security  \n\
+\n\
+Name: PAM  \n\
+Description: The primary Linux-PAM library. It is used by PAM modules and PAM-aware applications. \n\
+URL: http://www.linux-pam.org/ \n\
+Version: 1.4.0 \n\
+Cflags: -I${includedir} \n\
+Libs: -L${libdir} -lpam \n\
+" > /usr/lib/x86_64-linux-gnu/pkgconfig/pam.pc
+
+#patch libdocopt.pc
+RUN \
+echo " \
+prefix=/usr \n\
+exec_prefix=${prefix}  \n\
+libdir=/usr/lib/x86_64-linux-gnu   \n\
+includedir=/usr/include/docopt/  \n\
+\n\
+Name: DOCOPT  \n\
+Description: DOCOPT  \n\
+URL:   \n\
+Version: 0.6.2   \n\
+Cflags: -I${includedir}  \n\
+Libs: -L${libdir} -ldocopt  \n\
+" > /usr/lib/x86_64-linux-gnu/pkgconfig/docopt.pc
+
+RUN \
+   cd /opt/dev/ &&  git clone https://github.com/macauleycheng/rousette.git -b fixBuildFail  && cd rousette && \
+   mkdir build && cd build && \
+   cmake  -DBUILD_TESTING=OFF .. && make && make install
+
+#------------------------------------------------------------------- 
+
 
 FROM ubuntu:22.04
 
@@ -200,6 +310,36 @@ COPY nacm.xml /tmp
 RUN sysrepocfg -d startup -f xml -I /tmp/startup_all.xml
 RUN sysrepocfg -d running -f xml -I /tmp/startup_all.xml
 RUN sysrepocfg --module ietf-netconf-acm --edit=/tmp/nacm.xml  --datastore=running
+
+#---copy-from-restconf
+RUN apt-get install -y libspdlog-dev libsystemd-dev libpam0g-dev libdocopt-dev
+
+COPY --from=restconf /usr/local/bin/rousette /usr/local/bin/rousette
+COPY --from=restconf /usr/local/share/yang/modules/rousette/* /usr/share/yang/modules/rousette/
+
+COPY --from=restconf /usr/local/lib/libsysrepo-cpp.so /usr/lib/libsysrepo-cpp.so
+RUN  ln -s /usr/lib/libsysrepo-cpp.so /usr/lib/libsysrepo-cpp.so.6
+COPY --from=restconf /usr/local/include/sysrepo-cpp /usr/include/
+
+COPY --from=restconf /usr/local/lib/libyang-cpp.so /usr/lib/libyang-cpp.so
+RUN ln -s /usr/lib/libyang-cpp.so /usr/lib/libyang-cpp.so.4
+COPY --from=restconf /usr/local/include/libyang-cpp /usr/include/
+
+
+COPY --from=restconf /usr/local/lib/libnghttp2_asio.so.0.0.0 /usr/lib/libnghttp2_asio.so.0.0.0
+RUN ln -s /usr/lib/libnghttp2_asio.so.0.0.0 /usr/lib/libnghttp2_asio.so.0
+RUN ln -s /usr/lib/libnghttp2_asio.so
+COPY --from=restconf  /usr/local/include/nghttp2 /usr/include/
+
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-restconf@2017-01-26.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-interfaces@2018-02-20.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-ip@2018-02-22.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-network-instance@2019-01-21.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-subscribed-notifications@2019-09-09.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-restconf-monitoring@2017-01-26.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-restconf-subscribed-notifications@2019-11-17.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-yang-patch@2017-02-22.yang
+
 
 #EXPOSE 830
 CMD ["/usr/sbin/netopeer2-server", "-d", "-v2"]

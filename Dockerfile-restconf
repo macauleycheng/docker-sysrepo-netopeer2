@@ -5,7 +5,7 @@ RUN \
     git cmake valgrind libpcre2-dev build-essential pkg-config \
     vim libboost-dev libboost-system-dev libboost-thread-dev \
     libnghttp2-dev libssl-dev libspdlog-dev libsystemd-dev libpam0g-dev libdocopt-dev\
-    bison byacc flex libcurlpp-dev
+    bison byacc flex libcurlpp-dev nghttp2-proxy
 
 RUN mkdir /opt/dev 
 
@@ -21,19 +21,19 @@ RUN cd /opt/dev && \
 RUN \
     cd /opt/dev && git clone https://github.com/HowardHinnant/date.git -b v3.0.4 && cd date && \
     mkdir build && cd build && \
-    cmake -DBUILD_TZ_LIB=ON .. && make && make install
+    cmake -DBUILD_TZ_LIB=ON -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
 #doctest
-RUN \
-    cd /opt/dev && git clone https://github.com/doctest/doctest.git -b v2.4.11 && cd doctest && \
-    mkdir build && cd build && \
-    cmake .. && make && make install
+#RUN \
+#    cd /opt/dev && git clone https://github.com/doctest/doctest.git -b v2.4.11 && cd doctest && \
+#    mkdir build && cd build && \
+#    cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
 #libyang-cpp
 RUN \
      cd /opt/dev && git clone https://github.com/macauleycheng/libyang-cpp.git -b fixDate && cd libyang-cpp && \
      mkdir build && cd build && \
-     cmake -DBUILD_TESTING=OFF .. && make && make install
+     cmake -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
 #trompeloeil
 #RUN \
@@ -54,13 +54,13 @@ RUN \
 RUN \
     cd /opt/dev && git clone https://github.com/macauleycheng/sysrepo-cpp.git -b fixBuildError && cd sysrepo-cpp && \
     mkdir build && cd build && \
-    cmake  -DBUILD_TESTING=OFF .. && make && make install
+    cmake  -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
 #nghttp2-asio
 RUN \
     cd /opt/dev && git clone https://github.com/nghttp2/nghttp2-asio.git && cd nghttp2-asio && \
     mkdir build && cd build && \
-    cmake .. && make && make install
+    cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
 #libpam
 #RUN \
@@ -99,17 +99,30 @@ Libs: -L${libdir} -ldocopt  \n\
 " > /usr/lib/x86_64-linux-gnu/pkgconfig/docopt.pc
 
 RUN \
-   cd /opt/dev/ &&  git clone https://github.com/macauleycheng/rousette.git -b fixBuildFail  && cd rousette && \
+   cd /opt/dev && git clone https://github.com/macauleycheng/rousette.git -b fixBuildFail  && cd rousette && \
    mkdir build && cd build && \
-   cmake  -DBUILD_TESTING=OFF .. && make && make install
+   cmake  -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
-RUN sysrepoctl -i /usr/local/share/yang/modules/rousette/ietf-restconf@2017-01-26.yang
-RUN sysrepoctl -i /usr/local/share/yang/modules/rousette/ietf-interfaces@2018-02-20.yang
-RUN sysrepoctl -i /usr/local/share/yang/modules/rousette/ietf-ip@2018-02-22.yang
-RUN sysrepoctl -i /usr/local/share/yang/modules/rousette/ietf-network-instance@2019-01-21.yang
-RUN sysrepoctl -i /usr/local/share/yang/modules/rousette/ietf-subscribed-notifications@2019-09-09.yang
-RUN sysrepoctl -i /usr/local/share/yang/modules/rousette/ietf-restconf-monitoring@2017-01-26.yang
-RUN sysrepoctl -i /usr/local/share/yang/modules/rousette/ietf-restconf-subscribed-notifications@2019-11-17.yang
-RUN sysrepoctl -i /usr/local/share/yang/modules/rousette/ietf-yang-patch@2017-02-22.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-restconf@2017-01-26.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-interfaces@2018-02-20.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-ip@2018-02-22.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-network-instance@2019-01-21.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-subscribed-notifications@2019-09-09.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-restconf-monitoring@2017-01-26.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-restconf-subscribed-notifications@2019-11-17.yang
+RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-yang-patch@2017-02-22.yang
 
+RUN echo "" > /etc/nghttpx/nghttpx.conf
+RUN echo "root:root" | chpasswd
+
+EXPOSE 10090
+
+RUN echo "\n\
+    rousette & \n\
+    nghttpx --add-forwarded=for -f '*,10090;no-tls' -b '0.0.0.0,10080;/restconf/:/yang/:/streams/:/.well-known/;proto=h2' -b '0.0.0.0,10091;;proto=h2' \n\
+    " > script.sh
+
+RUN chmod +x script.sh
+
+ENTRYPOINT ["/bin/bash", "script.sh"]
 

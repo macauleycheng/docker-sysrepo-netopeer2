@@ -169,19 +169,19 @@ RUN cd /opt/dev && \
 RUN \
     cd /opt/dev && git clone https://github.com/HowardHinnant/date.git -b v3.0.4 && cd date && \
     mkdir build && cd build && \
-    cmake -DBUILD_TZ_LIB=ON .. && make && make install
+    cmake -DBUILD_TZ_LIB=ON  -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
 #doctest
-RUN \
-    cd /opt/dev && git clone https://github.com/doctest/doctest.git -b v2.4.11 && cd doctest && \
-    mkdir build && cd build && \
-    cmake .. && make && make install
+#RUN \
+#    cd /opt/dev && git clone https://github.com/doctest/doctest.git -b v2.4.11 && cd doctest && \
+#    mkdir build && cd build && \
+#    cmake .. && make && make install
 
 #libyang-cpp
 RUN \
      cd /opt/dev && git clone https://github.com/macauleycheng/libyang-cpp.git -b fixDate && cd libyang-cpp && \
      mkdir build && cd build && \
-     cmake -DBUILD_TESTING=OFF .. && make && make install
+     cmake -DBUILD_TESTING=OFF  -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
 #trompeloeil
 #RUN \
@@ -203,13 +203,13 @@ RUN \
 RUN \
     cd /opt/dev && git clone https://github.com/macauleycheng/sysrepo-cpp.git -b fixBuildError && cd sysrepo-cpp && \
     mkdir build && cd build && \
-    cmake  -DBUILD_TESTING=OFF .. && make && make install
+    cmake  -DBUILD_TESTING=OFF  -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
 #nghttp2-asio
 RUN \
     cd /opt/dev && git clone https://github.com/nghttp2/nghttp2-asio.git && cd nghttp2-asio && \
     mkdir build && cd build && \
-    cmake .. && make && make install
+    cmake  -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
 #libpam
 #RUN \
@@ -248,16 +248,16 @@ Libs: -L${libdir} -ldocopt  \n\
 " > /usr/lib/x86_64-linux-gnu/pkgconfig/docopt.pc
 
 RUN \
-   cd /opt/dev/ &&  git clone https://github.com/macauleycheng/rousette.git -b fixBuildFail  && cd rousette && \
+   cd /opt/dev/ && git clone https://github.com/macauleycheng/rousette.git -b fixBuildFail  && cd rousette && \
    mkdir build && cd build && \
-   cmake  -DBUILD_TESTING=OFF .. && make && make install
+   cmake  -DBUILD_TESTING=OFF  -DCMAKE_INSTALL_PREFIX:PATH=/usr .. && make && make install
 
 #------------------------------------------------------------------- 
 
 
 FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y curl libssl-dev heimdal-dev
+RUN apt-get update && apt-get install -y curl libssl-dev heimdal-dev nghttp2-proxy
 
 
 #libyang
@@ -314,22 +314,21 @@ RUN sysrepocfg --module ietf-netconf-acm --edit=/tmp/nacm.xml  --datastore=runni
 #---copy-from-restconf
 RUN apt-get install -y libspdlog-dev libsystemd-dev libpam0g-dev libdocopt-dev
 
-COPY --from=restconf /usr/local/bin/rousette /usr/local/bin/rousette
-COPY --from=restconf /usr/local/share/yang/modules/rousette/* /usr/share/yang/modules/rousette/
+COPY --from=restconf /usr/bin/rousette /usr/bin/rousette
+COPY --from=restconf /usr/share/yang/modules/rousette/* /usr/share/yang/modules/rousette/
 
-COPY --from=restconf /usr/local/lib/libsysrepo-cpp.so /usr/lib/libsysrepo-cpp.so
-RUN  ln -s /usr/lib/libsysrepo-cpp.so /usr/lib/libsysrepo-cpp.so.6
-COPY --from=restconf /usr/local/include/sysrepo-cpp /usr/include/
+COPY --from=restconf /usr/lib/x86_64-linux-gnu/libsysrepo-cpp.so /usr/lib/x86_64-linux-gnu/libsysrepo-cpp.so
+RUN  ln -s /usr/lib/x86_64-linux-gnu/libsysrepo-cpp.so /usr/lib/x86_64-linux-gnu/libsysrepo-cpp.so.6
+COPY --from=restconf /usr/include/sysrepo-cpp /usr/include/
 
-COPY --from=restconf /usr/local/lib/libyang-cpp.so /usr/lib/libyang-cpp.so
-RUN ln -s /usr/lib/libyang-cpp.so /usr/lib/libyang-cpp.so.4
-COPY --from=restconf /usr/local/include/libyang-cpp /usr/include/
+COPY --from=restconf /usr/lib/x86_64-linux-gnu/libyang-cpp.so /usr/lib/x86_64-linux-gnu/libyang-cpp.so
+RUN ln -s /usr/lib/x86_64-linux-gnu/libyang-cpp.so /usr/lib/x86_64-linux-gnu/libyang-cpp.so.4
+COPY --from=restconf /usr/include/libyang-cpp /usr/include/
 
 
-COPY --from=restconf /usr/local/lib/libnghttp2_asio.so.0.0.0 /usr/lib/libnghttp2_asio.so.0.0.0
-RUN ln -s /usr/lib/libnghttp2_asio.so.0.0.0 /usr/lib/libnghttp2_asio.so.0
-RUN ln -s /usr/lib/libnghttp2_asio.so
-COPY --from=restconf  /usr/local/include/nghttp2 /usr/include/
+COPY --from=restconf /usr/lib/x86_64-linux-gnu/libnghttp2_asio.so.0.0.0 /usr/lib/x86_64-linux-gnu/libnghttp2_asio.so.0.0.0
+RUN ln -s /usr/lib/x86_64-linux-gnu/libnghttp2_asio.so.0.0.0 /usr/lib/x86_64-linux-gnu/libnghttp2_asio.so.0
+COPY --from=restconf  /usr/include/nghttp2 /usr/include/
 
 RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-restconf@2017-01-26.yang
 RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-interfaces@2018-02-20.yang
@@ -341,6 +340,15 @@ RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-restconf-subscribed-noti
 RUN sysrepoctl -i /usr/share/yang/modules/rousette/ietf-yang-patch@2017-02-22.yang
 
 
-#EXPOSE 830
-CMD ["/usr/sbin/netopeer2-server", "-d", "-v2"]
+EXPOSE 830 1190
+
+RUN echo "\n\
+    rousette & \n\
+    nghttpx --add-forwarded=for -f '*,10090;no-tls' -b '0.0.0.0,10080;/restconf/:/yang/:/streams/:/.well-known/;proto=h2' -b '0.0.0.0,10091;;proto=h2' & \n\
+    /usr/sbin/netopeer2-server -d -v2 \n\
+    " > script.sh
+
+RUN chmod +x script.sh
+
+ENTRYPOINT ["/bin/bash", "script.sh"]
 
